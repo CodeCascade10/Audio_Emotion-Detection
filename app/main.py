@@ -3,10 +3,10 @@ from fastapi import FastAPI, Request, UploadFile, File
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-
 from app.predict import predict_audio
 
-UPLOAD_FOLDER = "uploads"
+# Use temporary directory (Render-safe)
+UPLOAD_FOLDER = "/tmp"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 app = FastAPI()
@@ -24,10 +24,14 @@ def home(request: Request):
 async def predict(request: Request, file: UploadFile = File(...)):
     file_path = os.path.join(UPLOAD_FOLDER, file.filename)
 
+    # Save uploaded file temporarily
     with open(file_path, "wb") as f:
         f.write(await file.read())
 
     result = predict_audio(file_path)
+
+    # Optional: delete file after prediction
+    os.remove(file_path)
 
     return templates.TemplateResponse(
         "index.html",
